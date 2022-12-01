@@ -1,0 +1,198 @@
+Parameters:
+  VpcCIDR:
+    Description: Please enter the IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  PublicSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.0.0/24
+
+  PublicSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the public subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.1.0/24
+
+  PrivateSubnet1CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.2.0/24
+
+  PrivateSubnet2CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.3.0/24
+
+  PrivateSubnet3CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.4.0/24
+
+  PrivateSubnet4CIDR:
+    Description: Please enter the IP range (CIDR notation) for the private subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.5.0/24
+
+
+  DBUsername:
+    Default: admin
+    Type: String
+    Description: Enter a valid Database master username
+    MinLength: 1
+    MaxLength: 16
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9]*"
+
+  DBInstanceID:
+    Default: mydbinstance
+    Description: My database instance
+    Type: String
+    MinLength: '1'
+    MaxLength: '63'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must begin with a letter and must not end with a hyphen or contain two consecutive hyphens.
+
+  DBName:
+    Default: mydb
+    Description: My database
+    Type: String
+    MinLength: '1'
+    MaxLength: '64'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: Must begin with a letter and contain only alphanumeric characters.
+
+  DBInstanceClass:
+    Default: db.t2.micro
+    Description: DB instance class
+    Type: String
+    ConstraintDescription: Must select a valid DB instance type.
+  DBAllocatedStorage:
+    Default: '20'
+    Description: The size of the database (GiB)
+    Type: Number
+    MinValue: '20'
+    MaxValue: '65536'
+    ConstraintDescription: must be between 20 and 65536 GiB.
+  DBUsername:
+    Default: admin
+    NoEcho: 'true'
+    Description: Username for MySQL database access
+    Type: String
+    MinLength: '1'
+    MaxLength: '16'
+    AllowedPattern: '[a-zA-Z][a-zA-Z0-9]*'
+    ConstraintDescription: must begin with a letter and contain only alphanumeric characters.
+  DBPassword:
+    Default: navid123
+    NoEcho: 'true'
+    Description: Password MySQL database access
+    Type: String
+    MinLength: '8'
+    MaxLength: '41'
+    AllowedPattern: '[a-zA-Z0-9]*'
+    ConstraintDescription: must contain only alphanumeric characters.
+
+  StandaloneOrAsg:
+    Description: Enter your choice (Standalone or ASG)
+    Type: String
+    AllowedValues:
+    - 'Standalone'
+    - 'ASG'
+
+  StandaloneWithLBorStandaloneNoLB:
+    Description: Do you want LB with standslone server or Not
+    Type: String
+    AllowedValues:
+    - 'yes'
+    - 'no'
+
+  MinSize:
+    Description: Enter the minimum capacity 
+    Type : String
+    Default: 0
+  MaxSize:
+    Description: Enter the maximum capacity 
+    Type : String
+    Default: 0
+  DesiredCapacity:
+    Description: Enter the Desired capacity 
+    Type : String
+    Default: 0
+  ImageIdforEC2:
+    Description: Enter the server image ID
+    Type: AWS::EC2::Image::Id
+    Default: ami-0b0dcb5067f052a63
+  InstanceType:
+    Description: Enter the server image ID
+    Type: String
+    Default: t2.micro
+
+  
+
+Resources:
+
+
+  RDSStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: https://my-three-tier-stack.s3.amazonaws.com/RDS.yml
+      Parameters:
+        VPC: !GetAtt VPCStack.Outputs.VPC
+        PrivateSubnet3: !GetAtt VPCStack.Outputs.PrivateSubnet3
+        PrivateSubnet4: !GetAtt VPCStack.Outputs.PrivateSubnet4
+        DBUsername: !Ref DBUsername
+        DBPassword: !Ref DBPassword
+        DBInstanceID: !Ref DBInstanceID
+        DBInstanceClass: !Ref DBInstanceClass
+        DBAllocatedStorage: !Ref DBAllocatedStorage  
+      Tags:
+        - Key: Name
+          Value:   RDSStack
+
+  VPCStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: https://my-three-tier-stack.s3.amazonaws.com/VPC.yml
+      Tags:
+        - Key: Name
+          Value: VPCStack
+
+
+
+  ComputeStack:
+    Type: "AWS::CloudFormation::Stack"
+    Properties:
+      TemplateURL: https://my-three-tier-stack.s3.amazonaws.com/Server.yml
+
+      Parameters:
+        VPC: !GetAtt VPCStack.Outputs.VPC
+        PublicSubnet1: !GetAtt VPCStack.Outputs.PublicSubnet1
+        PublicSubnet2: !GetAtt VPCStack.Outputs.PublicSubnet2
+        PrivateSubnet1: !GetAtt VPCStack.Outputs.PrivateSubnet1
+        PrivateSubnet2: !GetAtt VPCStack.Outputs.PrivateSubnet2
+        MinSize: !Ref MinSize
+        MaxSize: !Ref MaxSize
+        DesiredCapacity: !Ref DesiredCapacity
+        StandaloneOrAsg: !Ref StandaloneOrAsg
+        StandaloneWithLBorStandaloneNoLB: !Ref StandaloneWithLBorStandaloneNoLB
+
+      Tags:
+        - Key: Name
+          Value: ComputeStack
+        
+      
+    
+        
+Outputs:
+  RDSStack:
+    Description: RDS Database Stack
+    Value: !Ref RDSStack   
+
+  VPCStack:
+    Description: VPC Network Stack
+    Value: !Ref VPCStack
+
+  ComputeStack:
+    Description: Server Stack
+    Value: !Ref ComputeStack
+
